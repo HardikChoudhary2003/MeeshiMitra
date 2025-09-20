@@ -78,7 +78,7 @@ Query: "blue kurtis and home decor"
 **Analyze the following user query:**
 """
 
-# --- 3. THE API ROUTE ---
+# --- 3. THE API ROUTE (Corrected Version) ---
 @app.route('/search', methods=['GET'])
 def search():
     raw_query = request.args.get('q')
@@ -90,32 +90,53 @@ def search():
     search_tasks = []
     try:
         full_prompt = MASTER_PROMPT + f"Query: \"{raw_query}\""
-        gemini_model = genai.GenerativeModel('gemini-2.0-flash')
+        # CORRECTED MODEL NAME
+        gemini_model = genai.GenerativeModel('gemini-1.5-flash-latest') #chawra
+        # gemini_model = genai.GenerativeModel('gemini-2.0-flash')   #choudhary
         response = gemini_model.generate_content(full_prompt)
         print(f"--- Gemini API Response: {response.text} ---")
         
         response_data = json.loads(response.text)
         
-        # Check if Gemini returned a list (multi-intent) or a single object
-        if isinstance(response_data, list):
+        # --- CORRECTED LOGIC FOR NULL CHECK AND MULTI-INTENT ---
+        if isinstance(response_data, dict):
+            # It's a single search intent, let's check if it's empty
+            extracted_values = [
+                response_data.get('category'),
+                response_data.get('product_type'),
+                response_data.get('color'),
+                response_data.get('occasion'),
+                response_data.get('attributes')
+            ]
+            if not any(extracted_values):
+                print("--- Gemini found no relevant entities. Returning empty result. ---")
+                return jsonify([])
+            
+            # If it's valid, treat it as a list with one task
+            search_tasks = [response_data]
+        
+        elif isinstance(response_data, list):
+            # It's a multi-intent query, just use the list directly
             search_tasks = response_data
-        else:
-            search_tasks = [response_data] # Treat it as a list with one item
 
     except Exception as e:
         print(f"--- Gemini call failed or returned invalid data: {e} ---")
-        # Fallback: create a single search task with no filters
-        search_tasks = [{'category': None, 'product_type': None, 'color': None, 'occasion': None, 'attributes': []}]
+        search_tasks = [] # If anything fails, just result in an empty search
+
+    # If, after all checks, there are no tasks, return empty
+    if not search_tasks:
+        return jsonify([])
 
     final_results = []
     seen_ids = set()
 
+    # The rest of your loop logic is already correct
     for task in search_tasks:
         if len(final_results) >= 5:
             break
 
         filters = {}
-        for key in ["category","product_type","color", "occasion"]:
+        for key in ["category", "product_type", "color", "occasion"]:
             if task.get(key):
                 filters[key] = task.get(key)
         
@@ -126,9 +147,8 @@ def search():
         print(f"--- Running search for task with filters: {filters} ---")
 
         q_vec = model.encode([semantic_query])
-        distances, candidate_ids = index.search(np.array(q_vec), k=10000)
+        distances, candidate_ids = index.search(np.array(q_vec), k=1000)
         
-        # Add results for this task until we find a few or run out of candidates
         for doc_id in candidate_ids[0]:
             product = products[int(doc_id)]
             product_id = product.get('id')
@@ -145,13 +165,12 @@ def search():
             if passes_all_filters:
                 final_results.append(product)
                 seen_ids.add(product_id)
-                # Simple logic to get a mix of results: stop after finding 2 for this task
                 if len(final_results) % 2 == 0 and len(search_tasks) > 1:
                      break
             
             if len(final_results) >= 5:
                 break
-    print(f"---------------------------------{final_results}---------------------------")
+    
     return jsonify(final_results)
 
 if __name__ == '__main__':
