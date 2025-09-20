@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 import json
 import faiss
 import numpy as np
@@ -10,12 +11,15 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-# --- 1. CONFIGURATION ---
-try:
-    genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
-except KeyError:
-    print("Error: GOOGLE_API_KEY environment variable not set.")
+# --- 1. CONFIGURATI    ON ---
+load_dotenv()
+
+api_key = os.environ.get("GOOGLE_API_KEY")
+if not api_key:
+    print("Error: GOOGLE_API_KEY not found in .env file.")
     exit()
+
+genai.configure(api_key=api_key)
 
 model = SentenceTransformer('all-MiniLM-L6-v2')
 index = faiss.read_index('index.faiss')
@@ -25,14 +29,12 @@ with open('product_data.json', 'r', encoding='utf-8') as f:
 
 # --- 2. GEMINI PROMPT (Paste the updated version from above here) ---
 MASTER_PROMPT = """
-You are an expert NLU (Natural Language Understanding) model for Meesho, an Indian e-commerce company. Your single task is to analyze a user's search query and extract key product attributes into a structured JSON object.
+You are a highly specialized NLU service for Meesho, an Indian e-commerce company. Your SOLE function is to parse a user's query and return a raw, valid JSON object.
 
 **Rules:**
 1. Analyze the query for both explicit and implicit meaning. For example, "for my son" implies the category is "menswear" or "kids". "Kurti" or "saree" implies the category is "womenswear".
 2. If a specific attribute is not mentioned in the query, its value in the JSON must be `null`.
-3. Your response MUST be a single, valid JSON object without any extra text or markdown.
-4. **If the user's query contains multiple, distinct product requests (e.g., 'sarees and shoes'), you MUST return a JSON list containing a separate JSON object for each request. If the query is for a single item, return a single JSON object as before (not inside a list).**
-5. give response as below and strictly follow the response format, donot add "```"at start and end position
+3. If the user's query contains multiple, distinct product requests (e.g., 'sarees and shoes'), you MUST return a JSON list containing a separate JSON object for each request. If the query is for a single item, return a single JSON object as before (not inside a list).
 
 **JSON Schema to follow:**
 {
@@ -41,7 +43,7 @@ You are an expert NLU (Natural Language Understanding) model for Meesho, an Indi
   "color": "string | null",
   "occasion": "string | null",
   "attributes": ["string"]
-}
+}   
 
 **Examples:**
 Query: "red saree for wedding"
@@ -70,6 +72,8 @@ Query: "blue kurtis and home decor"
     "attributes": []
   }
 ]
+
+**CRITICAL OUTPUT RULE:** Your response MUST be only the raw JSON object or list. DO NOT wrap it in markdown backticks like ```json ... ```. Your entire response must start with `{` or `[` and end with `}` or `]`, with absolutely no other text, explanations, or formatting.
 
 **Analyze the following user query:**
 """
