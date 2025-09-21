@@ -217,7 +217,7 @@ def search():
         print(f"--- Running search for task with filters: {filters} ---")
 
         q_vec = model.encode([semantic_query])
-        distances, candidate_ids = index.search(np.array(q_vec), k=10000)
+        distances, candidate_ids = index.search(np.array(q_vec), k=5000)
         
         for doc_id in candidate_ids[0]:
             product = products[int(doc_id)]
