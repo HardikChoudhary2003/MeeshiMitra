@@ -27,56 +27,120 @@ with open('product_data.json', 'r', encoding='utf-8') as f:
     products = json.load(f)
 
 
+
 # --- 2. GEMINI PROMPT (Paste the updated version from above here) ---
 MASTER_PROMPT = """
-You are a highly specialized NLU service for Meesho, an Indian e-commerce company. Your SOLE function is to parse a user's query and return a raw, valid JSON object.
+Understood. You are right, if the backend filtering logic doesn't use the `attributes` key, then it should be removed from the prompt to prevent the model from extracting information that can't be used.
 
-**Rules:**
-1. Analyze the query for both explicit and implicit meaning. For example, "for my son" implies the category is "menswear" or "kids". "Kurti" or "saree" implies the category is "womenswear".
-2. If a specific attribute is not mentioned in the query, its value in the JSON must be `null`.
-3. If the user's query contains multiple, distinct product requests (e.g., 'sarees and shoes'), you MUST return a JSON list containing a separate JSON object for each request. If the query is for a single item, return a single JSON object as before (not inside a list).
+Here is the revised, cleaner `MASTER_PROMPT` with the `attributes` key completely removed from the schema and all examples.
+
+-----
+
+### **Final `MASTER_PROMPT` (attributes key removed)**
+
+````
+You are a highly specialized NLU (Natural Language Understanding) service for an e-commerce platform. Your single most important function is to parse a user's query and return a raw, valid JSON object that strictly adheres to the schema and allowed values provided below.
+
+**--- Schema and Allowed Values ---**
+
+You MUST ONLY use the values from the lists below for the corresponding JSON keys.
 
 **JSON Schema to follow:**
 {
   "category": "string | null",
+  "subcategory": "string | null",
   "product_type": "string | null",
   "color": "string | null",
-  "occasion": "string | null",
-  "attributes": ["string"]
-}   
-
-**Examples:**
-Query: "red saree for wedding"
-{
-  "category": "womenswear",
-  "product_type": "saree",
-  "color": "red",
-  "occasion": "wedding",
-  "attributes": []
+  "occasion": "string | null"
 }
 
-Query: "blue kurtis and home decor"
+**Allowed `category` values:**
+- "menswear"
+- "womenswear"
+- "smartphones"
+- "home_decor"
+- "puja_decor"
+
+**Allowed `subcategory` values:**
+- "topwear"
+- "bottomwear"
+- "belts"
+- "headwear"
+- "mobile phones"
+
+**Allowed `product_type` values:**
+- "kurti"
+- "jacket"
+- "jeans"
+- "belt"
+- "cap"
+- "shirt"
+- "mobile"
+- "smartphone"
+
+**Allowed `occasion` values:**
+- "festival"
+- "casual"
+- "party"
+- "sports"
+
+**--- Core Rules ---**
+
+1.  **Strict Mapping:** Your primary goal is to map the user's language to the **exact** allowed values listed above.
+    - If the user says "phone", "mobile", or "cellphone", you MUST map it to `product_type: "smartphone"`.
+    - If the user says "diwali", or any festival, you MUST map it to `occasion: "festival"`.
+    - If the user says "kurta" or "saree", you MUST infer `category: "womenswear"`.
+    - If the user says "pooja" or "mandir", you MUST infer `category: "puja_decor"`.
+
+2.  **Null for Unknowns:** If a specific attribute is not mentioned or cannot be inferred from the query, its value in the JSON MUST be `null`.
+
+3.  **Multi-Intent Queries:** If the user's query contains multiple, distinct product requests (e.g., 'sarees and shoes'), you MUST return a JSON list containing a separate JSON object for each request. For a single item query, return only the single JSON object.
+
+**--- !! CRITICAL OUTPUT RULE !! ---**
+Your response MUST be only the raw JSON. DO NOT wrap it in markdown backticks like ```json ... ```. Your entire response must start with `{` or `[` and end with `}` or `]`, with absolutely no other text, explanations, or formatting.
+
+**--- Examples ---**
+
+Query: "I need a green smartphone"
+{
+  "category": "smartphones",
+  "subcategory": "mobile phones",
+  "product_type": "smartphone",
+  "color": "green",
+  "occasion": null
+}
+
+Query: "show me black jeans and a white shirt for party"
 [
   {
-    "category": "womenswear",
-    "product_type": "kurti",
-    "color": "blue",
-    "occasion": null,
-    "attributes": []
+    "category": null,
+    "subcategory": "bottomwear",
+    "product_type": "jeans",
+    "color": "black",
+    "occasion": "party"
   },
   {
-    "category": "home_decor",
-    "product_type": null,
-    "color": null,
-    "occasion": null,
-    "attributes": []
+    "category": null,
+    "subcategory": "topwear",
+    "product_type": "shirt",
+    "color": "white",
+    "occasion": "party"
   }
 ]
 
-**CRITICAL OUTPUT RULE:** Your response MUST be only the raw JSON object or list. DO NOT wrap it in markdown backticks like ```json ... ```. Your entire response must start with `{` or `[` and end with `}` or `]`, with absolutely no other text, explanations, or formatting.
+Query: "decorations for pooja"
+{
+  "category": "puja_decor",
+  "subcategory": null,
+  "product_type": null,
+  "color": null,
+  "occasion": "festival"
+}
 
-**Analyze the following user query:**
+**--- Analyze the following user query: ---**
+````
 """
+
 
 # --- 3. THE API ROUTE (Corrected Version) ---
 @app.route('/search', methods=['GET'])
