@@ -21,7 +21,7 @@ const ProductCard = ({ product }) => {
       />
       <div className="p-4 flex flex-col flex-grow">
         <h3 className="text-lg font-semibold text-on-background flex-grow">{product.product_name}</h3>
-        <p className="text-sm text-on-background/80">{product.category}</p>
+        <p className="text-sm text-on-background/80">{product.title}</p>
         <div className="flex justify-between items-center mt-4">
           <span className="text-lg font-bold text-primary">{formattedPrice}</span>
           <button className="bg-primary text-white px-4 py-2 rounded-full hover:bg-primary/90 transition-colors">

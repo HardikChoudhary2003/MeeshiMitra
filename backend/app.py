@@ -91,8 +91,8 @@ def search():
     try:
         full_prompt = MASTER_PROMPT + f"Query: \"{raw_query}\""
         # CORRECTED MODEL NAME
-        gemini_model = genai.GenerativeModel('gemini-1.5-flash-latest') #chawra
-        # gemini_model = genai.GenerativeModel('gemini-2.0-flash')   #choudhary
+        # gemini_model = genai.GenerativeModel('gemini-1.5-flash-latest') #chawra
+        gemini_model = genai.GenerativeModel('gemini-2.0-flash')   #choudhary
         response = gemini_model.generate_content(full_prompt)
         print(f"--- Gemini API Response: {response.text} ---")
         
