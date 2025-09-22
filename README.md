@@ -1,4 +1,4 @@
-# MeeshoMitra: Intelligent E-commerce Search
+# MeeshoMitra: Intelli AI Assist
 
 MeeshoMitra is an intelligent e-commerce search application featuring a modern React frontend and a powerful Python backend. The application provides a conversational search experience where users can enter queries in natural language.
 
