@@ -1,0 +1,8 @@
+faiss-cpu
+Flask
+Flask-Cors
+google-generativeai
+numpy
+pandas
+python-dotenv
+sentence-transformers

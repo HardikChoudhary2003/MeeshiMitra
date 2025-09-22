@@ -27,56 +27,112 @@ with open('product_data.json', 'r', encoding='utf-8') as f:
     products = json.load(f)
 
 
+
 # --- 2. GEMINI PROMPT (Paste the updated version from above here) ---
 MASTER_PROMPT = """
-You are a highly specialized NLU service for Meesho, an Indian e-commerce company. Your SOLE function is to parse a user's query and return a raw, valid JSON object.
 
-**Rules:**
-1. Analyze the query for both explicit and implicit meaning. For example, "for my son" implies the category is "menswear" or "kids". "Kurti" or "saree" implies the category is "womenswear".
-2. If a specific attribute is not mentioned in the query, its value in the JSON must be `null`.
-3. If the user's query contains multiple, distinct product requests (e.g., 'sarees and shoes'), you MUST return a JSON list containing a separate JSON object for each request. If the query is for a single item, return a single JSON object as before (not inside a list).
+You are a highly specialized NLU (Natural Language Understanding) service for an e-commerce platform. Your single most important function is to parse a user's query and return a raw, valid JSON object that strictly adheres to the schema and allowed values provided below.
+
+**--- Schema and Allowed Values ---**
+
+You MUST ONLY use the values from the lists below for the corresponding JSON keys.
 
 **JSON Schema to follow:**
 {
   "category": "string | null",
+  "subcategory": "string | null",
   "product_type": "string | null",
   "color": "string | null",
-  "occasion": "string | null",
-  "attributes": ["string"]
-}   
-
-**Examples:**
-Query: "red saree for wedding"
-{
-  "category": "womenswear",
-  "product_type": "saree",
-  "color": "red",
-  "occasion": "wedding",
-  "attributes": []
+  "occasion": "string | null"
 }
 
-Query: "blue kurtis and home decor"
+**Allowed `category` values:**
+- "menswear"
+- "womenswear"
+- "smartphones"
+- "home_decor"
+- "puja_decor"
+
+**Allowed `subcategory` values:**
+- "topwear"
+- "bottomwear"
+- "belts"
+- "headwear"
+- "smartphone"
+
+**Allowed `product_type` values:**
+- "kurti"
+- "jacket"
+- "jeans"
+- "belt"
+- "cap"
+- "shirt"
+- "mobile"
+- "smartphone"
+
+**Allowed `occasion` values:**
+- "festival"
+- "casual"
+- "party"
+- "sports"
+
+**--- Core Rules ---**
+
+1.  **Strict Mapping:** Your primary goal is to map the user's language to the **exact** allowed values listed above.
+    - If the user says "phone", "smartphone", "mobile", or "cellphone", you MUST map it to `product_type: "smartphone"`.
+    - If the user says "diwali", or any festival, you MUST map it to `occasion: "festival"`.
+    - If the user says "kurta" or "saree", you MUST infer `category: "womenswear"`.
+    - If the user says "pooja" or "mandir", you MUST infer `category: "puja_decor"`.
+
+2.  **Null for Unknowns:** If a specific attribute is not mentioned or cannot be inferred from the query, its value in the JSON MUST be `null`.
+
+3.  **Multi-Intent Queries:** If the user's query contains multiple, distinct product requests (e.g., 'sarees and puja decore'), you MUST return a JSON list containing a separate JSON object for each request. For a single item query, return only the single JSON object.
+
+
+**--- Examples ---**
+
+Query: "I need a green smartphone"
+{
+  "category": "smartphones",
+  "subcategory": "smartphone",
+  "product_type": "smartphone",
+  "color": "green",
+  "occasion": null
+}
+
+Query: "show me black jeans and a white shirt for party"
 [
   {
-    "category": "womenswear",
-    "product_type": "kurti",
-    "color": "blue",
-    "occasion": null,
-    "attributes": []
+    "category": null,
+    "subcategory": "bottomwear",
+    "product_type": "jeans",
+    "color": "black",
+    "occasion": "party"
   },
   {
-    "category": "home_decor",
-    "product_type": null,
-    "color": null,
-    "occasion": null,
-    "attributes": []
+    "category": null,
+    "subcategory": "topwear",
+    "product_type": "shirt",
+    "color": "white",
+    "occasion": "party"
   }
 ]
 
-**CRITICAL OUTPUT RULE:** Your response MUST be only the raw JSON object or list. DO NOT wrap it in markdown backticks like ```json ... ```. Your entire response must start with `{` or `[` and end with `}` or `]`, with absolutely no other text, explanations, or formatting.
+Query: "decorations for pooja"
+{
+  "category": "puja_decor",
+  "subcategory": null,
+  "product_type": null,
+  "color": null,
+  "occasion": "festival"
+}
 
-**Analyze the following user query:**
+**--- !! CRITICAL OUTPUT RULE !! ---**
+Your response MUST be only the raw JSON. DO NOT wrap it in markdown backticks like ```json ... ```. Your entire response must start with `{` or `[` and end with `}` or `]`, with absolutely no other text, explanations, or formatting.
+
+**--- Analyze the following user query: ---**
 """
+
 
 # --- 3. THE API ROUTE (Corrected Version) ---
 @app.route('/search', methods=['GET'])
@@ -89,14 +145,28 @@ def search():
 
     search_tasks = []
     try:
+        # gemini_model = genai.GenerativeModel('gemini-1.5-flash-latest') #chawra
         full_prompt = MASTER_PROMPT + f"Query: \"{raw_query}\""
-        # CORRECTED MODEL NAME
-        gemini_model = genai.GenerativeModel('gemini-1.5-flash-latest') #chawra
-        # gemini_model = genai.GenerativeModel('gemini-2.0-flash')   #choudhary
+
+        gemini_model = genai.GenerativeModel('gemini-2.0-flash')   # choudhary
         response = gemini_model.generate_content(full_prompt)
-        print(f"--- Gemini API Response: {response.text} ---")
-        
-        response_data = json.loads(response.text)
+
+        # Clean response: strip whitespace and remove code fences if present
+        response_text = response.text.strip()
+
+        if response_text.startswith("```"):
+            lines = response_text.splitlines()
+            # Drop the first line (``` or ```json)
+            lines = lines[1:]
+            # Drop the last line if it's ```
+            if lines and lines[-1].startswith("```"):
+                lines = lines[:-1]
+            response_text = "\n".join(lines).strip()
+
+        # print(f"--- Gemini API Raw Response: {response.text} ---")
+        print(f"--- Gemini API Cleaned Response: {response_text} ---")
+
+        response_data = json.loads(response_text)
         
         # --- CORRECTED LOGIC FOR NULL CHECK AND MULTI-INTENT ---
         if isinstance(response_data, dict):
@@ -147,7 +217,7 @@ def search():
         print(f"--- Running search for task with filters: {filters} ---")
 
         q_vec = model.encode([semantic_query])
-        distances, candidate_ids = index.search(np.array(q_vec), k=1000)
+        distances, candidate_ids = index.search(np.array(q_vec), k=5000)
         
         for doc_id in candidate_ids[0]:
             product = products[int(doc_id)]
@@ -170,7 +240,7 @@ def search():
             
             if len(final_results) >= 5:
                 break
-    
+    print(final_results)
     return jsonify(final_results)
 
 if __name__ == '__main__':
