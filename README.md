@@ -4,7 +4,7 @@ MeeshoMitra is an intelligent e-commerce search application featuring a modern R
 
 ## 🚀 Project Demo
 
-[![Watch the video](meesho_demo.png)](https://youtu.be/FkXvNpIf9E4)
+[![Watch the video](https://github.com/user-attachments/assets/b1ea1f5a-a8db-4e94-b476-1cf4ad3ecb03)](https://youtu.be/FkXvNpIf9E4)
 
 ## Tech Stack
 
