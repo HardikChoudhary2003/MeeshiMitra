@@ -2,6 +2,10 @@
 
 MeeshoMitra is an intelligent e-commerce search application featuring a modern React frontend and a powerful Python backend. The application provides a conversational search experience where users can enter queries in natural language.
 
+## 🚀 Project Demo
+
+[![Watch the video](https://github.com/user-attachments/assets/b1ea1f5a-a8db-4e94-b476-1cf4ad3ecb03)](https://youtu.be/FkXvNpIf9E4)
+
 ## Tech Stack
 
 ### Frontend
