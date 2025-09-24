@@ -2,7 +2,7 @@
 
 MeeshoMitra is an intelligent e-commerce search application featuring a modern React frontend and a powerful Python backend. The application provides a conversational search experience where users can enter queries in natural language.
 
-## 🚀 Project Demo
+## 🚀 Project Demo Video
 
 [![Watch the video](https://github.com/user-attachments/assets/b1ea1f5a-a8db-4e94-b476-1cf4ad3ecb03)](https://youtu.be/FkXvNpIf9E4)
 
@@ -79,13 +79,13 @@ The backend leverages Google's Gemini model to dissect user queries into structu
     python app.py
 
 
-MeeshoMitra: Intelligent Conversational Search for Bharat
+MeeshoMitra: Intelligent Conversational Search for India
 Problem Definition
 
 While Meesho has made online shopping accessible to millions, the current keyword-based search engine struggles with natural, multi-word, or slightly misspelled queries.
 Some common failure cases include:
 
-Works for simple queries like “smart phone”, but fails at “lates smart phone” or “smartphone” (typos, spacing issues).
+Works for simple queries like “smart phone”, but fails at “latest smart phone” or “smartphone” (typos, spacing issues).
 
 Fails for intent-driven queries like “party wears for my husband” (needs category + gender + occasion understanding).
 
@@ -113,7 +113,7 @@ Universal Impact: Search is the entry point for most Meesho journeys. A better s
 
 Equity for Sellers: Small sellers without optimized keywords in their product listing get visibility through AI-powered semantic matching.
 
-Strategic Edge: Meesho can lead the market by offering conversational shopping for Bharat, appealing to first-time internet users who think in natural language rather than keywords.
+Strategic Edge: Meesho can lead the market by offering conversational shopping for India, appealing to first-time internet users who think in natural language rather than keywords.
 
 Stakeholders Impacted
 
